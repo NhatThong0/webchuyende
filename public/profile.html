@@ -1,0 +1,60 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ Sơ Cá Nhân</title>
+    <link rel="stylesheet" href="css/profile.css">
+</head>
+<body>
+    <div class="container">
+        <h2 class="form-title">Hồ Sơ Cá Nhân</h2>
+        <form id="profile-form">
+            <div class="section personal-info">
+                <div class="input-group">
+                    <label for="profile-name">Họ và Tên</label>
+                    <input type="text" id="profile-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="profile-email">Email</label>
+                    <input type="email" id="profile-email" required disabled>
+                </div>
+            </div>
+            
+            <div class="section booking-list">
+                <h3 class="section-title">Danh Sách Đặt Lịch</h3>
+                <div class="booking-table-container">
+                    <table class="booking-table">
+                        <thead>
+                            <tr>
+                                <th>Họ Tên</th>
+                                <th>Ngày</th>
+                                <th>Giờ</th>
+                                <th>Thời Gian</th>
+                                <th>Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dữ liệu sẽ được thêm bằng JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="navigation-links">
+                <a href="#" onclick="logout()">Đăng xuất</a> | 
+                <a href="home.html">Trang chủ</a>
+            </div>
+        </form>
+    </div>
+
+    <script src="js/profile.js"></script>
+    <script>
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản Lý Đặt Lịch - Admin</title>
+    <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+    <script>
+        // Kiểm tra đăng nhập admin
+        function checkAdminAuth() {
+            const token = localStorage.getItem('adminToken');
+            if (!token) {
+                window.location.href = 'adminLogin.html';
+                return false;
+            }
+
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (!payload.isAdmin) {
+                    alert('Bạn không có quyền truy cập trang này!');
+                    window.location.href = 'adminLogin.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                window.location.href = 'adminLogin.html';
+                return false;
+            }
+        }
+
+        // Kiểm tra ngay khi trang load
+        checkAdminAuth();
+    </script>
+    <header>
+    <h1>Quản Lý Đặt Lịch</h1>
+    <div class="header-right">
+        <span id="currentDate"></span>
+        <button onclick="logout()" class="btn btn-logout">Đăng xuất</button>
+    </div>
+</header>
+
+    <div class="tabs">
+        <button class="tab-button active" onclick="switchTab('bookings')">Quản lý đặt lịch</button>
+        <button class="tab-button" onclick="switchTab('users')">Quản lý tài khoản</button>
+    </div>
+
+    <div id="bookings-tab" class="tab-content active">
+        <div class="filters">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Tìm kiếm theo tên hoặc số điện thoại..."
+          />
+          <select id="statusFilter">
+            <option value="">Tất cả trạng thái</option>
+            <option value="confirmed">Đã xác nhận</option>
+            <option value="cancelled">Đã hủy</option>
+            <option value="completed">Đã hoàn thành</option>
+          </select>
+          <input type="date" id="dateFilter" placeholder="Lọc theo ngày" />
+          <button class="btn btn-view" id="refreshBtn">Làm mới</button>
+        </div>
+
+        <div id="bookingsContainer">
+          <!-- Nội dung sẽ được thêm động bằng JavaScript -->
+        </div>
+
+        <div class="pagination" id="pagination">
+          <!-- Phân trang sẽ được thêm động bằng JavaScript -->
+        </div>
+
+        <!-- Modal xem chi tiết -->
+        <div id="viewModal" class="modal">
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('viewModal')">&times;</span>
+            <h2>Chi Tiết Đặt Lịch</h2>
+            <div id="bookingDetails">
+              <!-- Chi tiết sẽ được thêm động bằng JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal chỉnh sửa -->
+        <div id="editModal" class="modal">
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('editModal')">&times;</span>
+            <h2>Chỉnh Sửa Đặt Lịch</h2>
+            <form id="editForm">
+              <input type="hidden" id="editBookingId" />
+              <div class="edit-form">
+                <div class="form-group">
+                  <label for="editFullName">Họ và tên:</label>
+                  <input type="text" id="editFullName" required />
+                </div>
+                <div class="form-group">
+                  <label for="editPhone">Số điện thoại:</label>
+                  <input type="tel" id="editPhone" required />
+                </div>
+                <div class="form-group">
+                  <label for="editEmail">Email:</label>
+                  <input type="email" id="editEmail" required />
+                </div>
+                <div class="form-group">
+                  <label for="editDate">Ngày cắt tóc:</label>
+                  <input type="date" id="editDate" required />
+                </div>
+                <div class="form-group">
+                  <label for="editTime">Giờ cắt tóc:</label>
+                  <input type="time" id="editTime" required />
+                </div>
+                <div class="form-group">
+                  <label for="editStatus">Trạng thái:</label>
+                  <select id="editStatus" required>
+                    <option value="confirmed">Đã xác nhận</option>
+                    <option value="cancelled">Đã hủy</option>
+                    <option value="completed">Đã hoàn thành</option>
+                    <option value="">Chưa xác nhận</option>
+                  </select>
+                </div>
+                <div class="form-group full-width">
+                  <label for="editNotes">Ghi chú:</label>
+                  <textarea id="editNotes" rows="3"></textarea>
+                </div>
+                <div class="form-buttons">
+                  <button
+                    type="button"
+                    class="btn btn-delete"
+                    onclick="closeModal('editModal')"
+                  >
+                    Hủy
+                  </button>
+                  <button type="submit" class="btn btn-edit">Lưu thay đổi</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Modal xóa -->
+        <div id="deleteModal" class="modal">
+          <div class="modal-content">
+            <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+            <h2>Xác nhận xóa</h2>
+            <p>Bạn có chắc chắn muốn xóa đặt lịch này?</p>
+            <input type="hidden" id="deleteBookingId" />
+            <div class="form-buttons">
+              <button
+                type="button"
+                class="btn btn-view"
+                onclick="closeModal('deleteModal')"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                class="btn btn-delete"
+                onclick="confirmDelete()"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <div id="users-tab" class="tab-content">
+        <div class="filters">
+            <input type="text" id="userSearchInput" placeholder="Tìm kiếm theo tên hoặc email..."/>
+            <button class="btn btn-view" id="userRefreshBtn">Làm mới</button>
+        </div>
+
+        <div id="usersContainer">
+            <!-- Nội dung sẽ được thêm động bằng JavaScript -->
+        </div>
+
+        <!-- Modal chỉnh sửa user -->
+        <div id="editUserModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('editUserModal')">&times;</span>
+                <h2>Chỉnh Sửa Tài Khoản</h2>
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId" />
+                    <div class="edit-form">
+                        <div class="form-group">
+                            <label for="editUserFullName">Họ và tên:</label>
+                            <input type="text" id="editUserFullName" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="editUserEmail">Email:</label>
+                            <input type="email" id="editUserEmail" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="editUserPassword">Mật khẩu mới (để trống nếu không thay đổi):</label>
+                            <input type="password" id="editUserPassword" />
+                        </div>
+                        <div class="form-buttons">
+                            <button type="button" class="btn btn-delete" onclick="closeModal('editUserModal')">Hủy</button>
+                            <button type="submit" class="btn btn-edit">Lưu thay đổi</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal xóa user -->
+        <div id="deleteUserModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('deleteUserModal')">&times;</span>
+                <h2>Xác nhận xóa</h2>
+                <p>Bạn có chắc chắn muốn xóa tài khoản này?</p>
+                <input type="hidden" id="deleteUserId" />
+                <div class="form-buttons">
+                    <button type="button" class="btn btn-view" onclick="closeModal('deleteUserModal')">Hủy</button>
+                    <button type="button" class="btn btn-delete" onclick="confirmDeleteUser()">Xóa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      // Biến global
+      let allBookings = [];
+      let currentPage = 1;
+      const itemsPerPage = 10;
+
+      // Định dạng ngày giờ
+      function formatDate(dateString) {
+        const options = {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        };
+        return new Date(dateString).toLocaleDateString("vi-VN", options);
+      }
+
+      function formatTime(timeString) {
+        return timeString;
+      }
+
+      // Thêm hàm mới này
+      function formatDateDisplay(dateString) {
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`; // Format: YYYY-MM-DD
+      }
+
+      // Hiển thị ngày hiện tại
+      document.getElementById("currentDate").textContent = formatDate(new Date());
+
+      // Tải dữ liệu đặt lịch
+      async function loadBookings() {
+        try {
+          const response = await fetch("http://localhost:3000/api/bookings");
+          const data = await response.json();
+
+          if (data.success) {
+            allBookings = data.data;
+            applyFilters();
+          } else {
+            showError("Không thể tải dữ liệu: " + data.message);
+          }
+        } catch (error) {
+          console.error("Lỗi khi tải dữ liệu:", error);
+          showError(
+            "Không thể kết nối với server. Vui lòng kiểm tra kết nối và thử lại."
+          );
+        }
+      }
+
+      // Hiển thị danh sách đặt lịch
+      function displayBookings(bookings) {
+        const container = document.getElementById("bookingsContainer");
+
+        if (bookings.length === 0) {
+          container.innerHTML =
+            '<div class="no-bookings">Không có lịch đặt nào.</div>';
+          document.getElementById("pagination").style.display = "none";
+          return;
+        }
+
+        // Tính toán phân trang
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, bookings.length);
+        const paginatedBookings = bookings.slice(startIndex, endIndex);
+
+        // Hiển thị bảng
+        let html = `
+                <table class="booking-table">
+                    <thead>
+                        <tr>
+                            <th>Họ và tên</th>
+                            <th>Số điện thoại</th>
+                            <th>Email</th>
+                            <th>Ngày</th>
+                            <th>Giờ</th>
+                            <th>Trạng thái</th>
+                            <th>Link xác nhận</th>
+                            <th>Hủy</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+        paginatedBookings.forEach((booking) => {
+          let statusClass = "";
+          let statusText = "";
+
+          switch (booking.status) {
+            case "confirmed":
+              statusClass = "status-confirmed";
+              statusText = "Đã xác nhận";
+              break;
+            case "cancelled":
+              statusClass = "status-cancelled";
+              statusText = "Đã hủy";
+              break;
+            case "completed":
+              statusClass = "status-completed";
+              statusText = "Đã hoàn thành";
+              break;
+            default:
+              statusClass = "status-unconfirmed";
+              statusText = "Chưa xác nhận";
+          }
+
+          html += `
+<tr>
+  <td>${booking.fullName}</td>
+  <td>${booking.phone}</td>
+  <td>${booking.email}</td>
+  <td>${formatDateDisplay(booking.date)}</td>
+  <td>${booking.time}</td>
+  <td><span class="status ${statusClass}">${statusText}</span></td>
+  <td>
+    ${booking.confirmationLink ? 
+      `<a href="${booking.confirmationLink}" target="_blank" style="color: blue; text-decoration: underline;">Link xác nhận</a>` 
+      : ''}
+  </td>
+  <td>
+    ${(() => {
+      const bookingDate = new Date(booking.date + ' ' + booking.time);
+      const now = new Date();
+      
+      if(booking.status === '') {
+        if(bookingDate < now) {
+          return 'X';
+        } else {
+          return ''; // Để trống phần hủy khi tạo booking mới
+        }
+      }
+      return '';
+    })()}
+  </td>
+  <td class="action-buttons">
+    <button class="btn btn-view" onclick="viewBooking('${booking._id}')">Xem</button>
+    <button class="btn btn-edit" onclick="editBooking('${booking._id}')">Sửa</button>
+    <button class="btn btn-delete" onclick="deleteBooking('${booking._id}')">Xóa</button>
+  </td>
+</tr>
+`;
+        });
+
+        html += `
+                    </tbody>
+                </table>
+            `;
+
+        container.innerHTML = html;
+
+        // Cập nhật phân trang
+        updatePagination(bookings.length);
+      }
+
+      // Cập nhật phân trang
+      function updatePagination(totalItems) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        let paginationHtml = "";
+
+        // Nút trang trước
+        paginationHtml += `
+                <button onclick="changePage(${Math.max(1, currentPage - 1)})" ${
+          currentPage === 1 ? "disabled" : ""
+        }>
+                    &laquo; Trước
+                </button>
+            `;
+
+        // Các nút số trang
+        for (let i = 1; i <= totalPages; i++) {
+          paginationHtml += `
+                    <button class="${
+                      currentPage === i ? "active" : ""
+                    }" onclick="changePage(${i})">
+                        ${i}
+                    </button>
+                `;
+        }
+
+        // Nút trang sau
+        paginationHtml += `
+                <button onclick="changePage(${Math.min(
+                  totalPages,
+                  currentPage + 1
+                )})" ${currentPage === totalPages ? "disabled" : ""}>
+                    Sau &raquo;
+                </button>
+            `;
+
+        const paginationElement = document.getElementById("pagination");
+        paginationElement.innerHTML = paginationHtml;
+        paginationElement.style.display = totalPages > 1 ? "flex" : "none";
+      }
+
+      // Đổi trang
+      function changePage(page) {
+        currentPage = page;
+        applyFilters();
+      }
+
+      // Áp dụng bộ lọc
+      function applyFilters() {
+        const searchValue = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const statusValue = document.getElementById("statusFilter").value;
+        const dateValue = document.getElementById("dateFilter").value;
+
+        const filteredBookings = allBookings.filter((booking) => {
+          // Lọc theo tên hoặc số điện thoại
+          const matchesSearch =
+            searchValue === "" ||
+            booking.fullName.toLowerCase().includes(searchValue) ||
+            booking.phone.toLowerCase().includes(searchValue);
+
+          // Lọc theo trạng thái
+          const matchesStatus =
+            statusValue === "" || booking.status === statusValue;
+
+          // Lọc theo ngày
+          const matchesDate = dateValue === "" || booking.date === dateValue;
+
+          return matchesSearch && matchesStatus && matchesDate;
+        });
+
+        displayBookings(filteredBookings);
+      }
+
+      // Xem chi tiết đặt lịch
+      function viewBooking(bookingId) {
+          const booking = allBookings.find((b) => b._id === bookingId);
+          if (!booking) return;
+
+          const statusText = {
+              confirmed: "Đã xác nhận",
+              cancelled: "Đã hủy", 
+              completed: "Đã hoàn thành",
+          }[booking.status || "confirmed"];
+
+          let detailsHtml = `
+              <div class="detail-row">
+                  <div class="detail-label">Họ và tên:</div>
+                  <div class="detail-value">${booking.fullName}</div>
+              </div>
+              <div class="detail-row">
+                  <div class="detail-label">Số điện thoại:</div>
+                  <div class="detail-value">${booking.phone}</div>
+              </div>
+              <div class="detail-row">
+                  <div class="detail-label">Email:</div>
+                  <div class="detail-value">${booking.email}</div>
+              </div>
+              <div class="detail-row">
+                  <div class="detail-label">Ngày cắt tóc:</div>
+                  <div class="detail-value">${booking.date}</div>
+              </div>
+              <div class="detail-row">
+                  <div class="detail-label">Giờ cắt tóc:</div>
+                  <div class="detail-value">${booking.time}</div>
+              </div>
+              <div class="detail-row">
+                  <div class="detail-label">Trạng thái:</div>
+                  <div class="detail-value">
+                      <span class="status status-${booking.status || ""}">${statusText}</span>
+                  </div>
+              </div>
+              <div class="detail-row">
+                  <div class="detail-label">Ghi chú:</div>
+                  <div class="detail-value">${booking.notes || "Không có ghi chú"}</div>
+              </div>
+              <div class="detail-row">
+                  <div class="detail-label">Thời gian tạo:</div>
+                  <div class="detail-value">${new Date(booking.createdAt).toLocaleString("vi-VN")}</div>
+              </div>
+              ${booking.updatedAt && booking.updatedAt !== booking.createdAt ? `
+              <div class="detail-row">
+                  <div class="detail-label">Thời gian cập nhật:</div>
+                  <div class="detail-value">${new Date(booking.updatedAt).toLocaleString("vi-VN")}</div>
+              </div>
+              ` : ''}
+          `;
+
+          document.getElementById("bookingDetails").innerHTML = detailsHtml;
+          openModal("viewModal");
+      }
+
+      // Chỉnh sửa đặt lịch
+      function editBooking(bookingId) {
+        const booking = allBookings.find((b) => b._id === bookingId);
+        if (!booking) return;
+
+        document.getElementById("editBookingId").value = booking._id;
+        document.getElementById("editFullName").value = booking.fullName;
+        document.getElementById("editPhone").value = booking.phone;
+        document.getElementById("editEmail").value = booking.email;
+        document.getElementById("editDate").value = booking.date; // Đã ở định dạng YYYY-MM-DD
+        document.getElementById("editTime").value = booking.time;
+        document.getElementById("editStatus").value = booking.status || "";
+        document.getElementById("editNotes").value = booking.notes || "";
+
+        openModal("editModal");
+      }
+
+      // Xóa đặt lịch
+      function deleteBooking(bookingId) {
+        document.getElementById("deleteBookingId").value = bookingId;
+        openModal("deleteModal");
+      }
+
+      // Xác nhận xóa đặt lịch
+      async function confirmDelete() {
+        const bookingId = document.getElementById("deleteBookingId").value;
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/bookings/${bookingId}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          const data = await response.json();
+
+          if (data.success) {
+            showMessage("Đã xóa đặt lịch thành công");
+            closeModal("deleteModal");
+            loadBookings();
+          } else {
+            showError("Không thể xóa đặt lịch: " + data.message);
+          }
+        } catch (error) {
+          console.error("Lỗi khi xóa đặt lịch:", error);
+          showError("Không thể kết nối với server. Vui lòng thử lại sau.");
+        }
+      }
+
+      // Lưu thay đổi đặt lịch
+      document
+        .getElementById("editForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const bookingId = document.getElementById("editBookingId").value;
+
+          const updatedData = {
+            fullName: document.getElementById("editFullName").value,
+            phone: document.getElementById("editPhone").value,
+            email: document.getElementById("editEmail").value,
+            date: document.getElementById("editDate").value,
+            time: document.getElementById("editTime").value,
+            notes: document.getElementById("editNotes").value,
+            status: document.getElementById("editStatus").value,
+          };
+
+          try {
+            const response = await fetch(
+              `http://localhost:3000/api/bookings/${bookingId}`,
+              {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updatedData),
+              }
+            );
+
+            const result = await response.json();
+
+            if (result.success) {
+              alert("✅ Cập nhật thành công!");
+              closeModal("editModal");
+              loadBookings(); // Reload lại danh sách
+            } else {
+              alert("❌ Lỗi khi cập nhật: " + result.message);
+            }
+          } catch (err) {
+            console.error("Lỗi cập nhật:", err);
+            alert("⚠ Đã xảy ra lỗi khi gửi yêu cầu cập nhật");
+          }
+        });
+
+      // Thêm sự kiện cho các bộ lọc
+      document
+        .getElementById("searchInput")
+        .addEventListener("input", applyFilters);
+      document
+        .getElementById("statusFilter")
+        .addEventListener("change", applyFilters);
+      document
+        .getElementById("dateFilter")
+        .addEventListener("change", applyFilters);
+      document
+        .getElementById("refreshBtn")
+        .addEventListener("click", function () {
+          document.getElementById("searchInput").value = "";
+          document.getElementById("statusFilter").value = "";
+          document.getElementById("dateFilter").value = "";
+          currentPage = 1;
+          loadBookings();
+        });
+
+      // Hiển thị modal
+      function openModal(modalId) {
+        document.getElementById(modalId).style.display = "block";
+      }
+
+      // Đóng modal
+      function closeModal(modalId) {
+        document.getElementById(modalId).style.display = "none";
+      }
+
+      // Hiển thị thông báo lỗi
+      function showError(message) {
+        alert("Lỗi: " + message);
+      }
+
+      // Hiển thị thông báo thành công
+      function showMessage(message) {
+        alert(message);
+      }
+
+      // Đóng modal khi click bên ngoài
+      window.onclick = function (event) {
+        const modals = document.getElementsByClassName("modal");
+        for (let i = 0; i < modals.length; i++) {
+          if (event.target === modals[i]) {
+            modals[i].style.display = "none";
+          }
+        }
+      };
+
+      // Tải dữ liệu khi trang được tải
+      document.addEventListener("DOMContentLoaded", loadBookings);
+    </script>
+
+    <!-- Thêm script logout -->
+<script>
+function logout() {
+    localStorage.removeItem('adminToken');
+    window.location.href = 'adminLogin.html';
+}
+</script>
+
+    <!-- Import scripts -->
+    <script src="js/bookingUI.js"></script>
+    <script src="js/bookingService.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/userManagement.js"></script>
+</body>
+</html>

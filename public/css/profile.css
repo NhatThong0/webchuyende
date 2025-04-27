@@ -1,0 +1,221 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(120deg, #f6f7f9, #e3e6f0);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+.container {
+    max-width: 800px;
+    width: 100%;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.form-title {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #333;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.section-title {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #333;
+    font-weight: 600;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 500;
+}
+
+.input-group input, 
+.input-group select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.input-group input:focus, 
+.input-group select:focus {
+    border-color: #4a90e2;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.datetime-group {
+    display: flex;
+    gap: 15px;
+}
+
+.datetime-group .input-group {
+    flex: 1;
+}
+
+.button {
+    width: 100%;
+    padding: 12px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: #3a7bc8;
+}
+
+.button.add-booking {
+    background-color: #4caf50;
+    margin-top: 10px;
+}
+
+.button.add-booking:hover {
+    background-color: #45a049;
+}
+
+.navigation-links {
+    margin-top: 30px;
+    text-align: center;
+    color: #666;
+}
+
+.navigation-links a {
+    color: #4a90e2;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0 5px;
+}
+
+.navigation-links a:hover {
+    text-decoration: underline;
+}
+
+/* Phần styling cho bảng danh sách đặt lịch */
+.booking-table-container {
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+.booking-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.booking-table th,
+.booking-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.booking-table th {
+    background-color: #f8f9fa;
+    color: #333;
+    font-weight: 600;
+}
+
+.booking-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+.action-btn {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    margin-right: 5px;
+    transition: all 0.2s ease;
+}
+
+.action-btn.confirm {
+    background-color: #4caf50;
+    color: white;
+}
+
+.action-btn.confirm:hover {
+    background-color: #45a049;
+}
+
+.action-btn.cancel {
+    background-color: #f44336;
+    color: white;
+}
+
+.action-btn.cancel:hover {
+    background-color: #d32f2f;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+    
+    .datetime-group {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .booking-table th,
+    .booking-table td {
+        padding: 10px;
+        font-size: 14px;
+    }
+    
+    .action-btn {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 580px) {
+    .booking-table {
+        font-size: 13px;
+    }
+    
+    .booking-table th,
+    .booking-table td {
+        padding: 8px 5px;
+    }
+    
+    .action-btn {
+        display: block;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+}
