@@ -45,5 +45,4 @@ thay thế bằng url của code thành url vừa tạo ở trên.
 ✅ Chạy project : 
 nhập lệnh trong terminal : node server.js
 [bấm vào ](http://localhost:3000)
-trang admin : http://localhost:3000/admin.html
-
+trang admin : http://localhost:3000
