@@ -1,3 +1,4 @@
+cài các thư viện : npm install bcrypt jsonwebtoken
 ✅ Bước 1: Tạo MongoDB Atlas Cluster
 Truy cập: https://www.mongodb.com/cloud/atlas
 
@@ -45,5 +46,4 @@ thay thế bằng url của code thành url vừa tạo ở trên.
 ✅ Chạy project : 
 nhập lệnh trong terminal : node server.js
 [bấm vào ](http://localhost:3000)
-trang admin : http://localhost:3000/admin.html
-
+trang admin : http://localhost:3000
