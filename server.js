@@ -19,59 +19,59 @@ app.use(cors());
 
 // Thêm middleware checkAdminAuth
 const checkAdminAuth = async (req, res, next) => {
-    try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Không tìm thấy token xác thực' 
-            });
-        }
-
-        const decoded = jwt.verify(token, SECRET_KEY);
-        
-        // Kiểm tra quyền admin
-        if (!decoded.isAdmin) {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'Chỉ admin mới có quyền truy cập' 
-            });
-        }
-
-        req.user = decoded;
-        next();
-    } catch (error) {
-        return res.status(401).json({ 
-            success: false, 
-            message: 'Token không hợp lệ' 
-        });
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Không tìm thấy token xác thực'
+      });
     }
+
+    const decoded = jwt.verify(token, SECRET_KEY);
+
+    // Kiểm tra quyền admin
+    if (!decoded.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Chỉ admin mới có quyền truy cập'
+      });
+    }
+
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Token không hợp lệ'
+    });
+  }
 };
 
 // Áp dụng middleware cho các route quản lý users
 app.get("/api/users", checkAdminAuth, async (req, res) => {
-    try {
-        const db = await connectDB();
-        const users = db.collection("users");
-        
-        // Loại bỏ admin account khỏi danh sách
-        const userList = await users.find({
-            email: { $ne: "admin@gmail.com" }
-        }, { 
-            projection: { password: 0 } 
-        }).toArray();
-        
-        res.status(200).json({ 
-            success: true, 
-            data: userList 
-        });
-    } catch (err) {
-        console.error("Lỗi:", err);
-        res.status(500).json({ 
-            success: false, 
-            message: "Lỗi server" 
-        });
-    }
+  try {
+    const db = await connectDB();
+    const users = db.collection("users");
+
+    // Loại bỏ admin account khỏi danh sách
+    const userList = await users.find({
+      email: { $ne: "admin@gmail.com" }
+    }, {
+      projection: { password: 0 }
+    }).toArray();
+
+    res.status(200).json({
+      success: true,
+      data: userList
+    });
+  } catch (err) {
+    console.error("Lỗi:", err);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server"
+    });
+  }
 });
 
 // Static files - đặt sau các API routes
@@ -109,9 +109,7 @@ async function connectDB() {
   }
 }
 
-// ------------------ API ------------------
 
-// Tạo mới đặt lịch
 app.post("/api/bookings", async (req, res) => {
   try {
     const db = await connectDB();
@@ -119,34 +117,42 @@ app.post("/api/bookings", async (req, res) => {
 
     const { fullName, phone, email, date, time, notes } = req.body;
 
-    // Encode dữ liệu để truyền vào URL
-    const ngayFormatted = encodeURIComponent(date);
-    const gioFormatted = encodeURIComponent(time);
-    const tenEncoded = encodeURIComponent(fullName);
-
-    // Tạo link xác nhận gửi tới webhook của n8n
-    const confirmationLink = `https://6d91-117-3-0-140.ngrok-free.app/webhook/xacnhanlink/?ngay=${ngayFormatted}&gio=${gioFormatted}&ten=${tenEncoded}`;
-
-    // Tạo bản ghi đặt lịch với cancelBooking trống
-    const bookingData = {
+    // Tạo bản ghi trước, để MongoDB tạo _id
+    const initialData = {
       fullName,
       phone,
       email,
       date,
       time,
       notes,
-      status: "", // Trạng thái ban đầu là trống
-      confirmationLink,
-      cancelBooking: "", // Đặt cancelBooking là chuỗi rỗng
+      status: "", // Trạng thái ban đầu
+      confirmationLink: "", // tạm để trống
+      cancelBooking: "", // tạm để trống
       createdAt: new Date(),
     };
 
-    const result = await bookings.insertOne(bookingData);
+    const result = await bookings.insertOne(initialData);
+    const insertedId = result.insertedId.toString();
+
+    // Encode dữ liệu để đưa vào link
+    const ngayFormatted = encodeURIComponent(date);
+    const gioFormatted = encodeURIComponent(time);
+    const tenEncoded = encodeURIComponent(fullName);
+    const idEncoded = encodeURIComponent(insertedId);
+
+    // Tạo confirmationLink có _id
+    const confirmationLink = `https://huuthinh.tail017e4c.ts.net/webhook/xacnhanlink/?id=${idEncoded}&ngay=${ngayFormatted}&gio=${gioFormatted}&ten=${tenEncoded}`;
+
+    // Cập nhật lại bản ghi với link đầy đủ
+    await bookings.updateOne(
+      { _id: result.insertedId },
+      { $set: { confirmationLink } }
+    );
 
     res.status(201).json({
       success: true,
       message: "Đặt lịch thành công",
-      bookingId: result.insertedId,
+      bookingId: insertedId,
       confirmationLink
     });
   } catch (err) {
@@ -154,6 +160,7 @@ app.post("/api/bookings", async (req, res) => {
     res.status(500).json({ success: false, message: "Lỗi tạo đặt lịch" });
   }
 });
+
 
 
 // Lấy tất cả lịch
@@ -251,16 +258,16 @@ app.put("/api/bookings/:id", async (req, res) => {
   try {
     const db = await connectDB();
     const booking = await db.collection("bookings").findOneAndUpdate(
-        { _id: new ObjectId(req.params.id) },
-        { 
-            $set: {
-                ...req.body,
-                updatedAt: new Date() // Thêm thời gian cập nhật
-            } 
-        },
-        { returnDocument: 'after' }
+      { _id: new ObjectId(req.params.id) },
+      {
+        $set: {
+          ...req.body,
+          updatedAt: new Date() // Thêm thời gian cập nhật
+        }
+      },
+      { returnDocument: 'after' }
     );
-    
+
     if (!booking.value) {
       return res
         .status(404)
@@ -332,18 +339,18 @@ app.post("/api/register", async (req, res) => {
 
     // Validate dữ liệu
     if (!fullName || !email || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Vui lòng điền đầy đủ thông tin" 
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng điền đầy đủ thông tin"
       });
     }
 
     // Kiểm tra email tồn tại
     const existing = await users.findOne({ email });
     if (existing) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Email đã được đăng ký" 
+      return res.status(400).json({
+        success: false,
+        message: "Email đã được đăng ký"
       });
     }
 
@@ -359,15 +366,15 @@ app.post("/api/register", async (req, res) => {
       createdAt: new Date()
     });
 
-    res.status(201).json({ 
-      success: true, 
-      message: "Đăng ký thành công" 
+    res.status(201).json({
+      success: true,
+      message: "Đăng ký thành công"
     });
   } catch (err) {
     console.error("Lỗi đăng ký:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Lỗi server" 
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server"
     });
   }
 });
@@ -455,93 +462,94 @@ app.post("/api/login", async (req, res) => {
 
 // Thay thế route /api/admin/login hiện tại
 app.post("/api/admin/login", async (req, res) => {
-    try {
-        const db = await connectDB();
-        const users = db.collection("users");
-        const { email, password } = req.body;
+  try {
+    const db = await connectDB();
+    const users = db.collection("users");
+    const { email, password } = req.body;
 
-        // Tìm user admin
-        const admin = await users.findOne({ 
-            email: email,
-            isAdmin: true
-        });
+    // Tìm user admin
+    const admin = await users.findOne({
+      email: email,
+      isAdmin: true
+    });
 
-        if (!admin) {
-            return res.status(401).json({
-                success: false,
-                message: "Tài khoản admin không tồn tại"
-            });
-        }
-
-        // Kiểm tra mật khẩu
-        const validPassword = await bcrypt.hash(password, admin.password);
-        if (!validPassword) {
-            return res.status(401).json({
-                success: false,
-                message: "Sai mật khẩu"
-            });
-        }
-
-        // Tạo token với quyền admin
-        const token = jwt.sign(
-            {
-                userId: admin._id,
-                email: admin.email,
-                role: "admin",
-                fullName: admin.fullName,
-                isAdmin: true
-            },
-            SECRET_KEY,
-            { expiresIn: "1h" }
-        );
-
-        res.json({
-            success: true,
-            message: "Đăng nhập admin thành công",
-            token
-        });
-
-    } catch (error) {
-        console.error("Lỗi đăng nhập admin:", error);
-        res.status(500).json({
-            success: false,
-            message: "Lỗi server"
-        });
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: "Tài khoản admin không tồn tại"
+      });
     }
+
+    // Kiểm tra mật khẩu
+    const validPassword = await bcrypt.hash(password, admin.password);
+    if (!validPassword) {
+      return res.status(401).json({
+        success: false,
+        message: "Sai mật khẩu"
+      });
+    }
+
+    // Tạo token với quyền admin
+    const token = jwt.sign(
+      {
+        userId: admin._id,
+        email: admin.email,
+        role: "admin",
+        fullName: admin.fullName,
+        isAdmin: true
+      },
+      SECRET_KEY,
+      { expiresIn: "1h" }
+    );
+
+    res.json({
+      success: true,
+      message: "Đăng nhập admin thành công",
+      token
+    });
+
+  } catch (error) {
+    console.error("Lỗi đăng nhập admin:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server"
+    });
+  }
 });
 
 // Thêm hàm initializeAdmin sau phần kết nối MongoDB
 async function initializeAdmin() {
-    try {
-        const db = await connectDB();
-        const users = db.collection("users");
+  try {
+    const db = await connectDB();
+    const users = db.collection("users");
 
-        // Kiểm tra xem tài khoản admin đã tồn tại chưa
-        const adminExists = await users.findOne({ email: "admin@admin.com" });
-        if (!adminExists) {
-            // Hash mật khẩu admin
-            const hashedPassword = await bcrypt.hash("123", 10);
+    // Kiểm tra xem tài khoản admin đã tồn tại chưa
+    const adminExists = await users.findOne({ email: "admin@admin.com" });
+    if (!adminExists) {
+      // Hash mật khẩu admin
+      const hashedPassword = await bcrypt.hash("123", 10);
 
-            // Tạo tài khoản admin
-            await users.insertOne({
-                fullName: "Administrator",
-                email: "admin@admin.com",
-                password: hashedPassword,
-                role: "admin",
-                createdAt: new Date(),
-                isAdmin: true // Thêm flag đánh dấu là admin
-            });
-            console.log("✅ Đã tạo tài khoản admin thành công");
-        }
-    } catch (error) {
-        console.error("❌ Lỗi khởi tạo admin:", error);
+      // Tạo tài khoản admin
+      await users.insertOne({
+        fullName: "Administrator",
+        email: "admin@admin.com",
+        password: hashedPassword,
+        role: "admin",
+        createdAt: new Date(),
+        isAdmin: true // Thêm flag đánh dấu là admin
+      });
+      console.log("✅ Đã tạo tài khoản admin thành công");
     }
+  } catch (error) {
+    console.error("❌ Lỗi khởi tạo admin:", error);
+  }
 }
+
 
 // Gọi hàm khởi tạo admin khi server start
 app.listen(port, async () => {
-    console.log(`🚀 Server đang chạy tại http://localhost:${port}`);
-    await initializeAdmin();
+  console.log(`🚀 Server đang chạy tại http://localhost:${port}`);
+  await initializeAdmin();
 });
 
 // nhatthong432

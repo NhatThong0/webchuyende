@@ -182,6 +182,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const token = localStorage.getItem('adminToken');
+            if (!token) {
+                throw new Error('Không tìm thấy token admin');
+            }
+
             const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
                 method: 'PUT',
                 headers: {
@@ -191,6 +195,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(updatedData)
             });
 
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
 
             if (data.success) {
@@ -198,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModal('editUserModal');
                 loadUsers();
             } else {
-                showError('Không thể cập nhật: ' + data.message);
+                showError(data.message || 'Không thể cập nhật thông tin');
             }
         } catch (error) {
             console.error('Lỗi:', error);
