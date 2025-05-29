@@ -396,7 +396,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     // Kiểm tra tài khoản admin đặc biệt
-    if (email === "admin@gmail.com" && password === "123") {
+    if (email === "admin@admin.com" && password === "123") {
       const token = jwt.sign(
         {
           userId: "admin",
